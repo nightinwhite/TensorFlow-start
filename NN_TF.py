@@ -33,23 +33,52 @@ def maxpool2d(x, poolsize=(2,2)):
 def flatten(x):
     return tf.contrib.layers.flatten(x)
 
-def full_con(x, out_dim):
-    return
+def full_con(x, w, b):
+    x = tf.matmul(x, w)
+    return tf.nn.bias_add(x, b)
+#----定义权值----
 weights = {
-    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 32])),
-    'wc2': tf.Variable(tf.random_normal([5, 5, 32, 64])),
-    'wf1': tf.Variable(tf.random_normal([5, 5, 32, 64]))
+    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 8])),
+    'wc2': tf.Variable(tf.random_normal([5, 5, 8, 16])),
+    'wc3': tf.Variable(tf.random_normal([5, 5, 16, 16])),
+    'wc4': tf.Variable(tf.random_normal([5, 5, 16, 16])),
+    'wc5': tf.Variable(tf.random_normal([5, 5, 16, 16])),
+    'wc6': tf.Variable(tf.random_normal([5, 5, 16, 16])),
+    'wf1': tf.Variable(tf.random_normal([3200, 1000])),
+    'wf2': tf.Variable(tf.random_normal([1000, 50])),
 }
 biases = {
-    'bc1': tf.Variable(tf.random_normal([32])),
-    'bc2': tf.Variable(tf.random_normal([64])),
+    'bc1': tf.Variable(tf.random_normal([8])),
+    'bc2': tf.Variable(tf.random_normal([16])),
+    'bc3': tf.Variable(tf.random_normal([16])),
+    'bc4': tf.Variable(tf.random_normal([16])),
+    'bc5': tf.Variable(tf.random_normal([16])),
+    'bc6': tf.Variable(tf.random_normal([16])),
+    'bf1': tf.Variable(tf.random_normal([1000])),
+    'bf2': tf.Variable(tf.random_normal([50])),
 }
+#----定义模型----
 x = tf.placeholder("float", [None, 200, 60, 1], "images")
+#--------卷积层--------
 conv2do1 = conv2d(x, weights['wc1'], biases['bc1'])
 conv2do2 = conv2d(conv2do1, weights['wc2'], biases['bc2'])
 conv2do2 = maxpool2d(conv2do2)
-fc1 = flatten(x)
-o = fc1
+#--------卷积层--------
+conv2do3 = conv2d(conv2do2, weights['wc3'], biases['bc3'])
+conv2do4 = conv2d(conv2do3, weights['wc4'], biases['bc4'])
+conv2do4 = maxpool2d(conv2do4)
+#--------卷积层--------
+conv2do5 = conv2d(conv2do4, weights['wc5'], biases['bc5'])
+conv2do6 = conv2d(conv2do5, weights['wc6'], biases['bc6'])
+conv2do6 = maxpool2d(conv2do6)
+#--------扁平化层--------
+conv2do6 = flatten(conv2do6)
+#--------全连接层--------
+fc1 = full_con(conv2do6, weights['wf1'], biases['bf1'])
+fc2 = full_con(fc1, weights['wf2'], biases['bf2'])
+#--------递归层--------
+
+o = fc2
 #运转模型
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()
