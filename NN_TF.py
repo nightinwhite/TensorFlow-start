@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 import cv2
-from tensorflow.python.ops import rnn
+import Get_Date
 #载入数据
 # imags_path = "/home/liuyi/test/images"
 # ans_name = "answer"
@@ -17,7 +17,10 @@ test_image2 = cv2.imread(images_path2, 0)
 test_image2 = cv2.resize(test_image2, (200, 60),interpolation=cv2.INTER_CUBIC)
 test_image2 = test_image2.transpose()
 test_image2 = np.resize(test_image2, (200, 60, 1))/255.0
-test_image = np.asarray([test_image1,test_image2])
+test_image = np.asarray([test_image1, test_image2])
+test_ans1 = [2, 3, 4, 3, 5, ]
+test_ans2 = [5, 3, 4, 3, 5, 6, 7]
+test_ans = [test_ans1, test_ans2]
 #print test_image.shape
 # cv2.imshow("1", test_image)
 # cv2.waitKey(0)
@@ -44,14 +47,13 @@ def full_con(x, w, b):
     x = tf.matmul(x, w)
     return tf.nn.bias_add(x, b)
 
-def LSTM(x, n_input, hidden_units, forget_bias = 1.0, layer_num = 1):
-    lstm = tf.nn.rnn_cell.LSTMCell(hidden_units, forget_bias=forget_bias, state_is_tuple=True,num_proj=int(x.get_shape()[1]))
+def LSTM(x, n_input, hidden_units, out_dim, forget_bias = 1.0, layer_num = 1):
+    lstm = tf.nn.rnn_cell.LSTMCell(hidden_units, forget_bias=forget_bias, state_is_tuple=True,num_proj=out_dim)
     lstms = tf.nn.rnn_cell.MultiRNNCell([lstm]*layer_num ,state_is_tuple=True)
     x = tf.reshape(x, (int(x.get_shape()[0]), int(x.get_shape()[1]), n_input))
     out, _ = tf.nn.dynamic_rnn(lstms, x, dtype="float")
-    return out[:, int(out.get_shape()[1])-1, :]
-
-
+    out = tf.transpose(out, [1, 0, 2])
+    return out
 #----定义权值----
 weights = {
     'wc1': tf.Variable(tf.random_normal([5, 5, 1, 8])),
@@ -75,7 +77,13 @@ biases = {
 }
 #----定义模型----
 batch_size = 2
+num_classes = 27+1
+max_len = 21
+sequence_length = np.asarray([21,50])#大于等于最小
 x = tf.placeholder("float", [batch_size, 200, 60, 1], "images")
+y_i = tf.placeholder(tf.int64, [None, 2], "y_i")
+y_v = tf.placeholder(tf.int32, [None,], "y_v")
+y_shape = tf.placeholder(tf.int64, [2,], "y_shape")
 #--------卷积层--------
 conv2do1 = conv2d(x, weights['wc1'], biases['bc1'])
 conv2do2 = conv2d(conv2do1, weights['wc2'], biases['bc2'])
@@ -94,19 +102,24 @@ conv2do6 = flatten(conv2do6)
 fc1 = full_con(conv2do6, weights['wf1'], biases['bf1'])
 fc2 = full_con(fc1, weights['wf2'], biases['bf2'])
 #--------递归层--------
-lstms = LSTM(fc2, n_input=1, hidden_units=32, layer_num=1)
+lstms = LSTM(fc2, n_input=1, hidden_units=32, out_dim=num_classes, layer_num=3)
 #--------CTC层--------
+ctc_o = tf.nn.ctc_loss(lstms, tf.SparseTensor(y_i, y_v, y_shape), sequence_length)
+loss = tf.reduce_mean(ctc_o)
+ctc_p = tf.nn.ctc_greedy_decoder(lstms, sequence_length)[0][0]
+o = ctc_p
 
-o = lstms
 #运转模型
+test_i, test_v, test_shape = Get_Date.SparseDateFrom(test_ans)
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()
 sess.run(init)
-out_images = sess.run(o, feed_dict={x: test_image})
+out_images = sess.run(o, feed_dict={x: test_image, y_i: test_i, y_v: test_v, y_shape: test_shape})
 sess.close()
 out_images = np.asarray(out_images)
 print out_images.shape
 print out_images
+print Get_Date.SparseDatetoDense(out_images)
 # cv2.imshow("1", out_images[0, :, :, 0:3])
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()

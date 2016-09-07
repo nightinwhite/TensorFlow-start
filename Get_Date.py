@@ -132,6 +132,26 @@ def SparseDateFrom(x):
             x_val.append(val)
     x_shape = [len(x), np.asarray(x_ix).max(0)[1] + 1]
     return x_ix, x_val, x_shape
+
+def SparseDatetoDense(x):
+    pos = x[0]
+    value = x[1]
+    index = 0
+    print pos
+    print value
+    res = []
+    tmp = []
+    for i in range(len(pos)):
+        if index == pos[i][0]:
+            tmp.append(value[i])
+        else:
+            index+=1
+            res.append(tmp)
+            tmp = []
+            tmp.append(value[i])
+    res.append(tmp)
+    return res
+
 #'/home/liuyi/test/captcha'
 #print get_ans_maxlen('/home/liuyi/test/captcha')
 # image,f = get_date_i('/home/liuyi/test/captcha',277)
