@@ -1,30 +1,34 @@
-#incoding:utf-8
+ #incoding:utf-8
 import tensorflow as tf
 import numpy as np
 import cv2
 import Get_Date
+import random
+import time
+
 #载入数据
-# images_path = "/home/liuyi/test/images"
-# ans_name = "answer"
-# image_date, ans_date = Get_Date.get_date(images_path, ans_name)
-# print image_date.shape
-# print ans_date
-#----测试数据----
-images_path1 = "0_ABOUT.jpg"
-images_path2 = "ADVICE.jpg"
+#images_path = "/home/liuyi/test/images"
+images_path = "/home/night/test/images"
 ans_name = "answer"
-test_image1 = cv2.imread(images_path1, 0)
-test_image1 = cv2.resize(test_image1, (200, 60),interpolation=cv2.INTER_CUBIC)
-test_image1 = test_image1.transpose()
-test_image1 = np.resize(test_image1, (200, 60, 1))/255.0
-test_image2 = cv2.imread(images_path2, 0)
-test_image2 = cv2.resize(test_image2, (200, 60),interpolation=cv2.INTER_CUBIC)
-test_image2 = test_image2.transpose()
-test_image2 = np.resize(test_image2, (200, 60, 1))/255.0
-test_image = np.asarray([test_image1, test_image2])
-test_ans1 = [2, 3, 4, 3, 5, ]
-test_ans2 = [5, 3, 4, 3, 5, 6, 7]
-test_ans = [test_ans1, test_ans2]
+images_date, ans_date = Get_Date.get_date(images_path, ans_name)
+print images_date.shape
+print ans_date
+#----测试数据----
+# images_path1 = "0_ABOUT.jpg"
+# images_path2 = "ADVICE.jpg"
+# ans_name = "answer"
+# test_image1 = cv2.imread(images_path1, 0)
+# test_image1 = cv2.resize(test_image1, (200, 60),interpolation=cv2.INTER_CUBIC)
+# test_image1 = test_image1.transpose()
+# test_image1 = np.resize(test_image1, (200, 60, 1))/255.0
+# test_image2 = cv2.imread(images_path2, 0)
+# test_image2 = cv2.resize(test_image2, (200, 60),interpolation=cv2.INTER_CUBIC)
+# test_image2 = test_image2.transpose()
+# test_image2 = np.resize(test_image2, (200, 60, 1))/255.0
+# test_image = np.asarray([test_image1, test_image2])
+# test_ans1 = [2, 3, 4, 3, 5, ]
+# test_ans2 = [5, 3, 4, 3, 5, 6, 7]
+# test_ans = [test_ans1, test_ans2]
 #----测试数据结尾----
 #构建模型
 #----定义层----
@@ -77,10 +81,10 @@ biases = {
     'bf2': tf.Variable(tf.random_normal([50])),
 }
 #----定义模型----
-batch_size = 2
-num_classes = 26+1
+batch_size = 200
+num_classes = 26+1+1
 max_len = 21
-sequence_length = np.asarray([21,50])#大于等于最小
+sequence_length = np.full((batch_size),max_len,dtype=np.int32)#!
 x = tf.placeholder("float", [batch_size, 200, 60, 1], "images")
 y_i = tf.placeholder(tf.int64, [None, 2], "y_i")
 y_v = tf.placeholder(tf.int32, [None,], "y_v")
@@ -109,19 +113,59 @@ ctc_o = tf.nn.ctc_loss(lstms, tf.SparseTensor(y_i, y_v, y_shape), sequence_lengt
 loss = tf.reduce_mean(ctc_o)
 ctc_p = tf.nn.ctc_greedy_decoder(lstms, sequence_length)[0][0]
 o = ctc_p
-
+train = tf.train.AdagradOptimizer(learning_rate=0.01).minimize(loss)
 #运转模型
-test_i, test_v, test_shape = Get_Date.SparseDateFrom(test_ans)
+#----测试模型----
+# test_i, test_v, test_shape = Get_Date.SparseDateFrom(test_ans)
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()
+# sess.run(init)
+# out_images = sess.run(o, feed_dict={x: test_image, y_i: test_i, y_v: test_v, y_shape: test_shape})
+# sess.close()
+# out_images = np.asarray(out_images)
+# o_ans = Get_Date.SparseDatetoDense(out_images)
+#----测试输出----
+# print out_images.shape
+# print out_images
+# print o_ans
+# print Get_Date.date_difference(o_ans, test_ans)
+#----测试结束----
+epoch = 200
+images_sum = 10000
+train_rate = 0.8
+slice_pos = 9800
+train_images = images_date[:slice_pos]
+train_labels = ans_date[:slice_pos]
+test_images = images_date[slice_pos:]
+test_labels = ans_date[slice_pos:]
+random_list = np.arange(slice_pos)
+batch_sum = int(slice_pos/batch_size)
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()
 sess.run(init)
-out_images = sess.run(o, feed_dict={x: test_image, y_i: test_i, y_v: test_v, y_shape: test_shape})
+file_name = "out"
+for e in range(epoch):
+    random.shuffle(random_list)
+    #f = open(file_name, "a")
+    for i in range(batch_sum):
+        begin_time = time.clock()
+        train_x = [train_images[m] for m in random_list[i*batch_size:(i+1)*batch_size]]
+        train_y = [train_labels[m] for m in random_list[i*batch_size:(i+1)*batch_size]]
+        train_yi, train_yv, train_ys = Get_Date.SparseDateFrom(train_y)
+        batch_loss = sess.run(loss, feed_dict={x: train_x, y_i: train_yi, y_v: train_yv, y_shape: train_ys})
+        sess.run(train, feed_dict={x: train_x, y_i: train_yi, y_v: train_yv, y_shape: train_ys})
+        end_time = time.clock()
+        print "epoch{0}/{1}: batch{2}/{3} loss={4} time={5}".format(e+1, epoch, (i+1)*batch_size, slice_pos, batch_loss,end_time-begin_time)
+        # test_xi, test_xv, test_xs = Get_Date.SparseDateFrom(test_labels)
+        # out_images = sess.run(o, feed_dict={x: test_images, y_i: test_xi, y_v: test_xv, y_shape: test_xs})
+        # o_ans = Get_Date.SparseDatetoDense(out_images)
+        # f.write("{0}:{1}\n".format(e+1, o_ans))
+    #f.close()
 sess.close()
-out_images = np.asarray(out_images)
-o_ans = Get_Date.SparseDatetoDense(out_images)
-print out_images.shape
-print out_images
-print o_ans
+
+
+
+
 #print Get_Date.date_difference(test_ans, o_ans)
 # cv2.imshow("1", out_images[0, :, :, 0:3])
 # cv2.waitKey(0)

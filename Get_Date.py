@@ -36,7 +36,7 @@ def get_date(file_path, ans_name):
         image_shape = (200, 60)
         tmp_path = file_path + "/" + tmp_file
         image = cv2.imread(tmp_path,0)
-        image = cv2.resize(image,image_shape,cv2.INTER_CUBIC)
+        image = cv2.resize(image, image_shape,interpolation=cv2.INTER_CUBIC)
         image = image.transpose((1, 0))
         image = np.resize(image, (200, 60, 1))/255.0
         images.append(image)
@@ -65,9 +65,7 @@ def get_ans_maxlen (file_path):
     return max_len, max_i, max_ans
 
 def date_difference(y, out):
-    out = np.argmax(out, axis=2)
-    y = y.tolist()
-    out = out.tolist()
+    #out = np.argmax(out, axis=2)
     s = len(y)
     right_sum = 0
     for i in range(s):
