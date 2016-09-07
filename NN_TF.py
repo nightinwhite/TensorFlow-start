@@ -4,8 +4,12 @@ import numpy as np
 import cv2
 import Get_Date
 #载入数据
-# imags_path = "/home/liuyi/test/images"
-# ans_name = "answer"
+images_path = "/home/liuyi/test/images"
+ans_name = "answer"
+image_date, ans_date = Get_Date.get_date(images_path, ans_name)
+print image_date.shape
+print ans_date
+#----测试数据----
 images_path1 = "0_ABOUT.jpg"
 images_path2 = "ADVICE.jpg"
 ans_name = "answer"
@@ -21,10 +25,7 @@ test_image = np.asarray([test_image1, test_image2])
 test_ans1 = [2, 3, 4, 3, 5, ]
 test_ans2 = [5, 3, 4, 3, 5, 6, 7]
 test_ans = [test_ans1, test_ans2]
-#print test_image.shape
-# cv2.imshow("1", test_image)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+#----测试数据结尾----
 #构建模型
 #----定义层----
 def conv2d(x, w, b, strides=1):
@@ -77,7 +78,7 @@ biases = {
 }
 #----定义模型----
 batch_size = 2
-num_classes = 27+1
+num_classes = 26+1
 max_len = 21
 sequence_length = np.asarray([21,50])#大于等于最小
 x = tf.placeholder("float", [batch_size, 200, 60, 1], "images")

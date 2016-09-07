@@ -1,6 +1,6 @@
 #coding:utf-8
 import os
-from PIL import Image
+import cv2
 import numpy as np
 def get_date_sum  (file_path) :
     files = os.listdir(file_path)
@@ -32,14 +32,15 @@ def get_date(file_path, ans_name):
         tmp_lines = tmp_line.split(":")
         tmp_file = tmp_lines[0]
         tmp_ans = tmp_lines[1]
+        tmp_ans = tmp_ans[:-1]
         image_shape = (200, 60)
         tmp_path = file_path + "/" + tmp_file
-        image = np.asarray(Image.open(tmp_path).convert('L').resize(image_shape), np.float32)
-        image = (image.transpose((1, 0))+0.0)/255
-        image = np.array([image], dtype=np.float32)
+        image = cv2.imread(tmp_path,0)
+        image = cv2.resize(image,image_shape,cv2.INTER_CUBIC)
+        image = image.transpose((1, 0))
+        image = np.resize(image, (200, 60, 1))/255.0
         images.append(image)
         tmp_ans = [refer[ord(tmp_ans[i])-65] if ord(tmp_ans[i])-65 >= 0 and ord(tmp_ans[i])-65 <= 57 else 26 for i in range(len(tmp_ans))]
-        tmp_ans = fill_blank(tmp_ans, 26, 41)
         anss.append(tmp_ans)
         tmp_line = fp.readline()
     images = np.asarray(images)
