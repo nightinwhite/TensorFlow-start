@@ -4,11 +4,11 @@ import numpy as np
 import cv2
 import Get_Date
 #载入数据
-images_path = "/home/liuyi/test/images"
-ans_name = "answer"
-image_date, ans_date = Get_Date.get_date(images_path, ans_name)
-print image_date.shape
-print ans_date
+# images_path = "/home/liuyi/test/images"
+# ans_name = "answer"
+# image_date, ans_date = Get_Date.get_date(images_path, ans_name)
+# print image_date.shape
+# print ans_date
 #----测试数据----
 images_path1 = "0_ABOUT.jpg"
 images_path2 = "ADVICE.jpg"
@@ -118,9 +118,11 @@ sess.run(init)
 out_images = sess.run(o, feed_dict={x: test_image, y_i: test_i, y_v: test_v, y_shape: test_shape})
 sess.close()
 out_images = np.asarray(out_images)
+o_ans = Get_Date.SparseDatetoDense(out_images)
 print out_images.shape
 print out_images
-print Get_Date.SparseDatetoDense(out_images)
+print o_ans
+#print Get_Date.date_difference(test_ans, o_ans)
 # cv2.imshow("1", out_images[0, :, :, 0:3])
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()

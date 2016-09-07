@@ -46,22 +46,6 @@ def get_date(file_path, ans_name):
     images = np.asarray(images)
     anss = np.asarray(anss)
     return images, anss
-def get_date_i  (file_path , i) :
-    files = os.listdir(file_path)
-    images = []
-    ans_s = []
-    image_shape = (200, 60)
-    image = np.asarray(Image.open(file_path+"/"+files[i]).convert('L').resize(image_shape), np.float32)
-    image = image.transpose((1, 0))
-    image = np.array([image], dtype=np.float32)
-    ans = files[i].split('_')[1]
-    ans = ans.split('.')[0]
-    ans = [ord(c)-64 for c in ans]
-    for c in ans :
-        if c >58 :
-            return get_date_i(file_path, (i+1) % len(files))
-    ans = fill_blank(ans, blank_index=26, fill_len=41)
-    return image, ans
 
 def get_ans_maxlen (file_path):
     max_len = 0
@@ -80,26 +64,6 @@ def get_ans_maxlen (file_path):
         i += 1
     return max_len, max_i, max_ans
 
-def fill_blank  (arr, blank_index,fill_len):
-    a_len = len(arr)
-    return [blank_index if i % 2 == 0 or i/2 >= a_len else arr[i/2] for i in range(fill_len)]
-
-
-def CTC_B(A):
-    blank_num = 0
-    i = len(A) - 1
-    j = i
-    while i != 0:
-        j = i - 1
-        if A[i] != blank_num and A[j] == A[i]:
-            del A[i]
-        elif A[i] == blank_num:
-            del A[i]
-        i -= 1
-    if A[0] == blank_num:
-        del A[0]
-    return A
-
 def date_difference(y, out):
     out = np.argmax(out, axis=2)
     y = y.tolist()
@@ -109,9 +73,9 @@ def date_difference(y, out):
     for i in range(s):
         y_s = [y[i][m] for m in range(len(y[i]))]
         out_s = [out[i][m] for m in range(len(out[i]))]
-        y_i = CTC_B(y[i])
-        out_i = CTC_B(out[i])
-        #print"{0} \nVS\n {1}\n".format(y_s, out_s)
+        y_i = y_s
+        out_i = out_s
+        print"{0} \nVS\n {1}\n".format(y_s, out_s)
         if len(y_i)!=len(out_i):
             continue
         else:
@@ -152,8 +116,3 @@ def SparseDatetoDense(x):
             tmp.append(value[i])
     res.append(tmp)
     return res
-
-#'/home/liuyi/test/captcha'
-#print get_ans_maxlen('/home/liuyi/test/captcha')
-# image,f = get_date_i('/home/liuyi/test/captcha',277)
-# os.remove('/home/liuyi/test/captcha'+'/'+f)
