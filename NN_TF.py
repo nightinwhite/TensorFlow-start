@@ -7,10 +7,12 @@ import random
 import time
 
 #载入数据
-#images_path = "/home/liuyi/test/images"
-images_path = "/home/night/test/images"
+images_path = "/home/liuyi/test/images"
+#images_path = "/home/night/test/images"
 ans_name = "answer"
 images_date, ans_date = Get_Date.get_date(images_path, ans_name)
+np.save("/home/liuyi/test/tf_images.npy", images_date)
+np.save("/home/liuyi/test/tf_labels.npy", ans_date)
 print images_date.shape
 print ans_date
 #----测试数据----
@@ -134,19 +136,24 @@ epoch = 200
 images_sum = 10000
 train_rate = 0.8
 slice_pos = 9800
+
 train_images = images_date[:slice_pos]
 train_labels = ans_date[:slice_pos]
+
 test_images = images_date[slice_pos:]
 test_labels = ans_date[slice_pos:]
+
 random_list = np.arange(slice_pos)
+
 batch_sum = int(slice_pos/batch_size)
+test_batch = int(images_sum-slice_pos)/batch_size
+
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()
 sess.run(init)
 file_name = "out"
 for e in range(epoch):
     random.shuffle(random_list)
-    #f = open(file_name, "a")
     for i in range(batch_sum):
         begin_time = time.clock()
         train_x = [train_images[m] for m in random_list[i*batch_size:(i+1)*batch_size]]
@@ -155,18 +162,27 @@ for e in range(epoch):
         batch_loss = sess.run(loss, feed_dict={x: train_x, y_i: train_yi, y_v: train_yv, y_shape: train_ys})
         sess.run(train, feed_dict={x: train_x, y_i: train_yi, y_v: train_yv, y_shape: train_ys})
         end_time = time.clock()
-        print "epoch{0}/{1}: batch{2}/{3} loss={4} time={5}".format(e+1, epoch, (i+1)*batch_size, slice_pos, batch_loss,end_time-begin_time)
-        # test_xi, test_xv, test_xs = Get_Date.SparseDateFrom(test_labels)
-        # out_images = sess.run(o, feed_dict={x: test_images, y_i: test_xi, y_v: test_xv, y_shape: test_xs})
-        # o_ans = Get_Date.SparseDatetoDense(out_images)
-        # f.write("{0}:{1}\n".format(e+1, o_ans))
-    #f.close()
+        print "epoch{0}/{1}: batch{2}/{3} loss={4} time={5}s".format(e+1, epoch, (i+1)*batch_size, slice_pos, batch_loss,(end_time-begin_time)*(batch_sum-i))
+    # test_xi, test_xv, test_xs = Get_Date.SparseDateFrom(test_labels)
+    # out_images = sess.run(o, feed_dict={x: test_images, y_i: test_xi, y_v: test_xv, y_shape: test_xs})
+    # o_ans = Get_Date.SparseDatetoDense(out_images)
+    # test_loss = sess.run(loss, feed_dict={x: test_images, y_i: test_xi, y_v: test_xv, y_shape: test_xs})
+    # right_sum = Get_Date.date_difference(o_ans,)
+    right_num = 0
+    loss = 0
+    begin_time = time.clock()
+    for i in range(test_batch):
+        test_x = [test_images[i * batch_size:(i + 1) * batch_size]]
+        test_y = [test_labels[i * batch_size:(i + 1) * batch_size]]
+        test_yi, test_yv, test_ys = Get_Date.SparseDateFrom(test_y)
+        tmp_loss = sess.run(loss, feed_dict={x: test_images, y_i: test_yi, y_v: test_yv, y_shape: test_ys})
+        test_ans = sess.run(o, feed_dict={x: test_images, y_i: test_yi, y_v: test_yv, y_shape: test_ys})
+        test_ans = Get_Date.SparseDatetoDense(test_ans)
+        tmp_right_num = Get_Date.date_difference(test_ans, test_y)
+        loss+=tmp_loss
+        right_num+=tmp_right_num
+    end_time = time.clock()
+    print "epoch{0}/{1}: loss={2} right_num = {3} time={4}s".format(e + 1, epoch, loss, right_num, end_time - begin_time)
 sess.close()
 
 
-
-
-#print Get_Date.date_difference(test_ans, o_ans)
-# cv2.imshow("1", out_images[0, :, :, 0:3])
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
